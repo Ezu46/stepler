@@ -1,5 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
+    id("com.google.gms.google-services")
+
 }
 
 android {
@@ -39,10 +41,16 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation ("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation ("androidx.appcompat:appcompat:1.6.1")
-
+    implementation ("com.google.firebase:firebase-bom:33.9.0")
+    implementation(platform("com.google.firebase:firebase-bom:32.8.1")) // BOM для управления версиями
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
     // Если используете AndroidX Activity:
-    implementation ("androidx.activity:activity:1.10.0")  // Совместимая версия для SDK 34
+    implementation ("androidx.activity:activity:1.10.0")
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.database)  // Совместимая версия для SDK 34
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
 }

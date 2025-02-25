@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "931858108756",
+    "firebase_url": "https://stepler228-ed79b-default-rtdb.firebaseio.com",
+    "project_id": "stepler228-ed79b",
+    "storage_bucket": "stepler228-ed79b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:931858108756:android:2a9b9be59179e6decfb8c1",
+        "android_client_info": {
+          "package_name": "com.example.stepler"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBMXtCGRDLezYvKKcGIFUMd-mhOh4kJwQY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
