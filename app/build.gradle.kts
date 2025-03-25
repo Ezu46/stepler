@@ -45,7 +45,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:32.8.1")) // BOM для управления версиями
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
-    // Если используете AndroidX Activity:
+    implementation ("com.google.firebase:firebase-functions:20.4.0")
     implementation ("androidx.activity:activity:1.10.0")
     implementation(libs.firebase.auth)
     implementation(libs.firebase.database)  // Совместимая версия для SDK 34
