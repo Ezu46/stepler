@@ -33,4 +33,17 @@
         android:layout_marginTop="24dp"
         android:text="Выйти из аккаунта"/>
 
+    <Button
+        android:id="@+id/btnLedOn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Включить свет"
+        android:layout_marginEnd="8dp"/>
+
+    <Button
+        android:id="@+id/btnLedOff"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Выключить свет"/>
+
 </LinearLayout>
