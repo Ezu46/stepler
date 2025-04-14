@@ -6,9 +6,8 @@
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".HomeActivity">
+    tools:context=".CarControlActivity">
 
-    <!-- Основной контент -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -33,20 +32,18 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- Контент управления -->
             <TextView
-                android:id="@+id/tvGreeting"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                tools:text="Доброе утро, шеф!" />
+                android:text="Управление автомобилем"
+                android:textSize="20sp"/>
+
+            <!-- Сюда можно добавить кнопки управления -->
 
         </LinearLayout>
-
     </LinearLayout>
 
-    <!-- Боковое меню -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
         android:layout_width="wrap_content"
@@ -54,5 +51,4 @@
         android:layout_gravity="start"
         app:headerLayout="@layout/nav_header"
         app:menu="@menu/nav_menu"/>
-
 </androidx.drawerlayout.widget.DrawerLayout>

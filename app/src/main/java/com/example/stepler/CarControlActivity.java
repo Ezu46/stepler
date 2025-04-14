@@ -6,13 +6,12 @@ import android.view.MenuItem;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-public class LogsActivity extends AppCompatActivity
+public class CarControlActivity extends AppCompatActivity
         implements NavigationDrawerHelper.NavigationListener,
         UserProfileLoader.ProfileDataListener {
 
@@ -23,13 +22,11 @@ public class LogsActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_logs);
+        setContentView(R.layout.activity_car_control);
 
-        // Инициализация компонентов
         mAuth = FirebaseAuth.getInstance();
         mDatabase = FirebaseDatabase.getInstance().getReference("users");
 
-        // Настройка Navigation Drawer
         drawerHelper = new NavigationDrawerHelper(
                 this,
                 R.id.drawer_layout,
@@ -38,18 +35,11 @@ public class LogsActivity extends AppCompatActivity
         );
         drawerHelper.setNavigationListener(this);
 
-        // Загрузка данных пользователя
         UserProfileLoader.loadUserProfile(
                 mAuth.getCurrentUser(),
                 mDatabase,
                 this
         );
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
     }
 
     @Override
@@ -60,7 +50,7 @@ public class LogsActivity extends AppCompatActivity
     @Override
     public void onError(String message) {
         runOnUiThread(() ->
-                Toast.makeText(this, "Ошибка загрузки: " + message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Ошибка: " + message, Toast.LENGTH_SHORT).show()
         );
     }
 
@@ -72,11 +62,12 @@ public class LogsActivity extends AppCompatActivity
             mAuth.signOut();
             startActivity(new Intent(this, MainActivity.class));
             finish();
+        } else if (id == R.id.nav_car_control) {
+            // Уже в этой активности
+        } else if (id == R.id.nav_logs) {
+            startActivity(new Intent(this, LogsActivity.class));
         } else if (id == R.id.nav_profile) {
             startActivity(new Intent(this, HomeActivity.class));
-        }
-        else if (id == R.id.nav_car_control) {
-            startActivity(new Intent(this, CarControlActivity.class));
         }
 
         drawerHelper.handleBackPressed();

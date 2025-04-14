@@ -10,6 +10,11 @@
             android:id="@+id/nav_logs"
             android:icon="@drawable/ic_history"
             android:title="История действий"/>
+        <item
+            android:id="@+id/nav_car_control"
+            android:icon="@drawable/ic_car"
+            android:title="Управление авто" />
+
     </group>
 
     <item android:title="Управление">

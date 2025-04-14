@@ -2,30 +2,22 @@ package com.example.stepler;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
-import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import java.util.Calendar;
 
 public class HomeActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationDrawerHelper.NavigationListener,
+        UserProfileLoader.ProfileDataListener {
 
-    private DrawerLayout drawer;
+    private NavigationDrawerHelper drawerHelper;
     private TextView tvGreeting;
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
@@ -35,27 +27,19 @@ public class HomeActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        // Инициализация элементов
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
-        drawer = findViewById(R.id.drawer_layout);
-        NavigationView navigationView = findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
-
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this,
-                drawer,
-                toolbar,
-                R.string.navigation_drawer_open,
-                R.string.navigation_drawer_close
-        );
-        drawer.addDrawerListener(toggle);
-        toggle.syncState();
-
-        tvGreeting = findViewById(R.id.tvGreeting);
+        // Инициализация компонентов
         mAuth = FirebaseAuth.getInstance();
         mDatabase = FirebaseDatabase.getInstance().getReference("users");
+        tvGreeting = findViewById(R.id.tvGreeting);
+
+        // Настройка Navigation Drawer
+        drawerHelper = new NavigationDrawerHelper(
+                this,
+                R.id.drawer_layout,
+                R.id.toolbar,
+                R.id.nav_view
+        );
+        drawerHelper.setNavigationListener(this);
 
         // Проверка авторизации
         if (mAuth.getCurrentUser() == null) {
@@ -63,12 +47,36 @@ public class HomeActivity extends AppCompatActivity
             return;
         }
 
-        // Загрузка данных и обновление интерфейса
-        loadUserData();
+        // Загрузка данных пользователя
+        UserProfileLoader.loadUserProfile(
+                mAuth.getCurrentUser(),
+                mDatabase,
+                this
+        );
+
         updateGreeting();
     }
 
+    @Override
+    public void onProfileLoaded(String name, String email) {
+        runOnUiThread(() -> {
+            drawerHelper.updateHeader(name, email);
+            updateGreeting(name);
+        });
+    }
+
+    @Override
+    public void onError(String message) {
+        runOnUiThread(() ->
+                Toast.makeText(this, "Ошибка загрузки: " + message, Toast.LENGTH_SHORT).show()
+        );
+    }
+
     private void updateGreeting() {
+        updateGreeting("");
+    }
+
+    private void updateGreeting(String name) {
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
         int greetingResId = R.string.greeting_day;
 
@@ -80,47 +88,11 @@ public class HomeActivity extends AppCompatActivity
             greetingResId = R.string.greeting_night;
         }
 
-        tvGreeting.setText(getString(greetingResId));
-    }
-
-    private void loadUserData() {
-        FirebaseUser user = mAuth.getCurrentUser();
-        if (user != null) {
-            // Установка email в заголовок
-            NavigationView navigationView = findViewById(R.id.nav_view);
-            View headerView = navigationView.getHeaderView(0);
-            TextView tvHeaderEmail = headerView.findViewById(R.id.tvHeaderEmail);
-            tvHeaderEmail.setText(user.getEmail());
-
-            // Загрузка имени из базы данных
-            mDatabase.child(user.getUid()).child("name")
-                    .addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            String name = snapshot.getValue(String.class);
-                            if (name != null && !name.isEmpty()) {
-                                updateUserName(name);
-                            }
-                        }
-
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-                            Log.e("HomeActivity", "Error loading name", error.toException());
-                        }
-                    });
+        String greeting = getString(greetingResId);
+        if (!name.isEmpty()) {
+            greeting += ", " + name;
         }
-    }
-
-    private void updateUserName(String name) {
-        // Обновление заголовка меню
-        NavigationView navigationView = findViewById(R.id.nav_view);
-        View headerView = navigationView.getHeaderView(0);
-        TextView tvHeaderName = headerView.findViewById(R.id.tvHeaderName);
-        tvHeaderName.setText(name);
-
-        // Обновление приветствия
-        String currentGreeting = tvGreeting.getText().toString();
-        tvGreeting.setText(currentGreeting + ", " + name);
+        tvGreeting.setText(greeting);
     }
 
     @Override
@@ -131,9 +103,13 @@ public class HomeActivity extends AppCompatActivity
             logoutUser();
         } else if (id == R.id.nav_logs) {
             startActivity(new Intent(this, LogsActivity.class));
+        } else if (id == R.id.nav_profile) {
+            // Уже в профиле
+        } else if (id == R.id.nav_car_control) {
+            startActivity(new Intent(this, CarControlActivity.class));
         }
 
-        drawer.closeDrawer(GravityCompat.START);
+        drawerHelper.handleBackPressed();
         return true;
     }
 
@@ -149,11 +125,8 @@ public class HomeActivity extends AppCompatActivity
 
     @Override
     public void onBackPressed() {
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
-        }
+        super.onBackPressed();
+        drawerHelper.handleBackPressed();
     }
 
     @Override
