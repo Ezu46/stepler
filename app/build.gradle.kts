@@ -48,6 +48,7 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     implementation ("com.google.firebase:firebase-functions:20.4.0")
     implementation ("androidx.activity:activity:1.10.0")
+    implementation ("com.google.android.gms:play-services-maps:18.1.0")
     implementation(libs.firebase.auth)
     implementation(libs.firebase.database)  // Совместимая версия для SDK 34
     testImplementation(libs.junit)

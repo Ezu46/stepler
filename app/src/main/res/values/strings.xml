@@ -6,4 +6,14 @@
     <string name="greeting_night">Доброй ночи</string>
     <string name="navigation_drawer_open">Открыть меню</string>
     <string name="navigation_drawer_close">Закрыть меню</string>
+    <string name="windows_control">Управление окнами</string>
+    <string name="open_windows">Открыть окна</string>
+    <string name="close_windows">Закрыть окна</string>
+    <string name="engine_control">Управление двигателем</string>
+    <string name="start_engine">Запустить двигатель</string>
+    <string name="stop_engine">Заглушить двигатель</string>
+    <string name="lights_control">Управление фарами</string>
+    <string name="flash_lights">Поморгать фарами</string>
+    <string name="car_image">Изображение машины</string>
+    <string name="location_icon">Локация машины</string>
 </resources>

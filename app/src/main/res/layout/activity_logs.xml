@@ -34,11 +34,14 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- Внутри LinearLayout с id main -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/logs_recycler_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="8dp"/>
+
             <!-- Контент для LogsActivity -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="History logs will be here"/>
 
         </LinearLayout>
 

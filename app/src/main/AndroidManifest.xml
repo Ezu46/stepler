@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -12,6 +14,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Stepler"
         tools:targetApi="31">
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="сюда апипшку закинуть если я все таки гугл настрою хддд"/>
+        <activity
+            android:name=".ServiceCentersActivity"
+            android:exported="false" />
         <activity
             android:name=".CarControlActivity"
             android:exported="false" />

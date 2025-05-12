@@ -13,6 +13,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import java.util.Calendar;
 
+
 public class HomeActivity extends AppCompatActivity
         implements NavigationDrawerHelper.NavigationListener,
         UserProfileLoader.ProfileDataListener {
@@ -107,6 +108,9 @@ public class HomeActivity extends AppCompatActivity
             // Уже в профиле
         } else if (id == R.id.nav_car_control) {
             startActivity(new Intent(this, CarControlActivity.class));
+        }
+        else if (id == R.id.nav_service_centers) {
+            startActivity(new Intent(this, ServiceCentersActivity.class));
         }
 
         drawerHelper.handleBackPressed();

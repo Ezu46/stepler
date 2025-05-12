@@ -2,53 +2,133 @@
 <androidx.drawerlayout.widget.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".CarControlActivity">
+    android:layout_height="match_parent">
 
+    <!-- Основной контент -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <!-- Тулбар -->
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            android:elevation="4dp"
-            android:contentInsetStart="0dp"
-            android:contentInsetLeft="0dp"
-            app:contentInsetStart="0dp"
-            app:contentInsetLeft="0dp"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
 
+        <!-- Контент -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
+            android:gravity="center"
             android:padding="16dp">
 
-            <!-- Контент управления -->
+            <!-- Картинка машины -->
+            <ImageView
+                android:id="@+id/img_car"
+                android:layout_width="200dp"
+                android:layout_height="120dp"
+                android:src="@drawable/car_main"
+                android:contentDescription="@string/car_image"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- Статус двигателя -->
             <TextView
+                android:id="@+id/engine_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Управление автомобилем"
-                android:textSize="20sp"/>
+                android:text="Двигатель: OFF"
+                android:textSize="18sp"
+                android:layout_marginBottom="32dp"/>
 
-            <!-- Сюда можно добавить кнопки управления -->
+            <!-- Контейнер кнопок -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
 
+                <!-- Кнопка Старт/Стоп двигателя -->
+                <ImageButton
+                    android:id="@+id/btn_engine"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/start_engine"
+                    android:background="@drawable/btn_square_selector"
+                    android:scaleType="centerInside"
+                    android:layout_margin="8dp"/>
+
+                <!-- Кнопка открытия/закрытия окон -->
+                <ImageButton
+                    android:id="@+id/btn_windows"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/close_window"
+                    android:background="@drawable/btn_square_selector"
+                    android:scaleType="centerInside"
+                    android:layout_margin="8dp"/>
+
+                <!-- Кнопка блокировки/открытия дверей -->
+                <ImageButton
+                    android:id="@+id/btn_lock"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/car_lock"
+                    android:background="@drawable/btn_square_selector"
+                    android:scaleType="centerInside"
+                    android:layout_margin="8dp"/>
+
+                <!-- Фары -->
+                <ImageButton
+                    android:id="@+id/btn_lights"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/car_find"
+                    android:background="@drawable/btn_square_selector"
+                    android:scaleType="centerInside"
+                    android:layout_margin="8dp"/>
+            </LinearLayout>
+            <!-- Геопозиция машины -->
+            <LinearLayout
+                android:id="@+id/location_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp">
+
+                <!-- Векторная иконка геолокации -->
+                <ImageView
+                    android:id="@+id/img_location"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    app:srcCompat="@drawable/ic_location_on"
+                    android:contentDescription="@string/location_icon"/>
+
+                <!-- Текст с будущей геопозицией -->
+                <TextView
+                    android:id="@+id/tv_location"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Геопозиция машины: …"
+                    android:textSize="16sp"
+                    android:layout_marginStart="8dp"/>
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
+    <!-- Боковое меню -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        app:headerLayout="@layout/nav_header"
         app:menu="@menu/nav_menu"/>
+
 </androidx.drawerlayout.widget.DrawerLayout>

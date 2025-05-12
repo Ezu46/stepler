@@ -14,6 +14,10 @@
             android:id="@+id/nav_car_control"
             android:icon="@drawable/ic_car"
             android:title="Управление авто" />
+        <item
+            android:id="@+id/nav_service_centers"
+            android:icon="@drawable/ic_service_centers"
+            android:title="Сервисные центры" />
 
     </group>
 

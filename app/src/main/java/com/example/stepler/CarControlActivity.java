@@ -1,32 +1,58 @@
 package com.example.stepler;
 
+import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.util.Log;
 import android.view.MenuItem;
-import android.widget.Toast;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import com.example.stepler.LogsActivity;
+import com.example.stepler.HomeActivity;
+import com.example.stepler.UserProfileLoader;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+
 public class CarControlActivity extends AppCompatActivity
-        implements NavigationDrawerHelper.NavigationListener,
-        UserProfileLoader.ProfileDataListener {
+        implements NavigationDrawerHelper.NavigationListener {
+
+    private DatabaseReference arduinoRef;
+
+    private ImageView   imgCar;
+    private ImageButton btnEngine;
+    private ImageButton btnWindows;
+    private ImageButton btnLights;
+    private ImageButton btnLock;
+    private TextView    tvEngineStatus;
 
     private NavigationDrawerHelper drawerHelper;
-    private FirebaseAuth mAuth;
-    private DatabaseReference mDatabase;
+    private Vibrator                vibrator;
+    private TextView tvLocation;
+
+    private boolean isWindowsOpen = false;
+    private boolean isDoorsLocked = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_car_control);
 
-        mAuth = FirebaseAuth.getInstance();
-        mDatabase = FirebaseDatabase.getInstance().getReference("users");
-
+        // === Navigation Drawer & Toolbar ===
         drawerHelper = new NavigationDrawerHelper(
                 this,
                 R.id.drawer_layout,
@@ -35,57 +61,219 @@ public class CarControlActivity extends AppCompatActivity
         );
         drawerHelper.setNavigationListener(this);
 
-        UserProfileLoader.loadUserProfile(
-                mAuth.getCurrentUser(),
-                mDatabase,
-                this
+        // === View binding ===
+        imgCar         = findViewById(R.id.img_car);
+        btnEngine      = findViewById(R.id.btn_engine);
+        btnWindows     = findViewById(R.id.btn_windows);
+        btnLights      = findViewById(R.id.btn_lights);
+        btnLock        = findViewById(R.id.btn_lock);
+        tvEngineStatus = findViewById(R.id.engine_status);
+        tvLocation     = findViewById(R.id.tv_location);
+        tvEngineStatus = findViewById(R.id.engine_status);
+
+        vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+        // === Firebase setup ===
+        arduinoRef = FirebaseDatabase.getInstance()
+                .getReference("Arduino");
+
+        checkAuthentication();
+        setupDatabaseListener();
+        setupButtonClickListeners();
+        fetchPublicIpAndShow();
+        // === Load user profile ===
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            DatabaseReference usersRef = FirebaseDatabase.getInstance()
+                    .getReference("users");          // << lowercase!
+            UserProfileLoader.loadUserProfile(
+                    currentUser,
+                    usersRef,
+                    new UserProfileLoader.ProfileDataListener() {
+                        @Override
+                        public void onProfileLoaded(String name, String email) {
+                            // Nav Drawer header
+                            drawerHelper.updateHeader(name, email);
+                            // Toolbar title + subtitlе
+                        }
+                        @Override
+                        public void onError(String message) {
+                            Log.e("CarControlActivity", "Profile load error: " + message);
+                        }
+                    }
+            );
+        }
+    }
+
+    private void fetchPublicIpAndShow() {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://api.ipify.org");
+                BufferedReader in = new BufferedReader(
+                        new InputStreamReader(url.openStream()));
+                final String ip = in.readLine();
+                in.close();
+                runOnUiThread(() ->
+                        tvLocation.setText("Геопозиция машины: " + ip)
+                );
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void checkAuthentication() {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            startActivity(new Intent(this, MainActivity.class));
+            finish();
+        }
+    }
+
+    private void setupDatabaseListener() {
+        arduinoRef.addValueEventListener(new com.google.firebase.database.ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    String action = snapshot.child("action").getValue(String.class);
+                    if (action != null) updateUI(action);
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {
+                Log.e("Firebase", "Error: " + error.getMessage());
+            }
+        });
+    }
+
+    private void setupButtonClickListeners() {
+        // Окна
+        btnWindows.setOnClickListener(v -> {
+            vibrate(50);
+            toggleWindows();
+        });
+
+        // Старт/Стоп двигателя
+        btnEngine.setOnClickListener(v -> {
+            vibrate(50);
+            boolean engineOff = tvEngineStatus.getText().toString().endsWith("OFF");
+            String cmd = engineOff ? "engine_start" : "engine_stop";
+            // оптимистично меняем UI
+            tvEngineStatus.setText("Двигатель: " + (engineOff ? "ON" : "OFF"));
+            sendCommand(cmd);
+        });
+
+        // Фары (мигалка)
+        btnLights.setOnClickListener(v -> {
+            vibrate(20);
+            sendCommand("lights_flash");
+        });
+
+        // Блокировка/Разблокировка дверей
+        btnLock.setOnClickListener(v -> {
+            vibrate(50);
+            isDoorsLocked = !isDoorsLocked;
+            sendCommand(isDoorsLocked ? "lock_doors" : "unlock_doors");
+            updateLockButton();
+        });
+    }
+
+    private void toggleWindows() {
+        isWindowsOpen = !isWindowsOpen;
+        sendCommand(isWindowsOpen ? "windows_open" : "windows_close");
+        updateWindowButton();
+    }
+
+    private void sendCommand(String command) {
+        arduinoRef.child("action")
+                .setValue(command)
+                .addOnFailureListener(e ->
+                        Log.e("Firebase", "Send error: " + e.getMessage())
+                );
+    }
+
+    private void updateUI(String action) {
+        runOnUiThread(() -> {
+            switch (action) {
+                case "windows_open":
+                    isWindowsOpen = true;
+                    updateWindowButton();
+                    break;
+                case "windows_close":
+                    isWindowsOpen = false;
+                    updateWindowButton();
+                    break;
+                case "engine_start":
+                    tvEngineStatus.setText("Двигатель: ON");
+                    break;
+                case "engine_stop":
+                    tvEngineStatus.setText("Двигатель: OFF");
+                    break;
+                case "lock_doors":
+                    isDoorsLocked = true;
+                    updateLockButton();
+                    break;
+                case "unlock_doors":
+                    isDoorsLocked = false;
+                    updateLockButton();
+                    break;
+            }
+        });
+    }
+
+    private void updateWindowButton() {
+        btnWindows.setImageResource(
+                isWindowsOpen
+                        ? R.drawable.open_window
+                        : R.drawable.close_window
         );
     }
 
-    @Override
-    public void onProfileLoaded(String name, String email) {
-        runOnUiThread(() -> drawerHelper.updateHeader(name, email));
+    private void updateLockButton() {
+        btnLock.setImageResource(
+                isDoorsLocked
+                        ? R.drawable.car_lock
+                        : R.drawable.car_open
+        );
     }
 
-    @Override
-    public void onError(String message) {
-        runOnUiThread(() ->
-                Toast.makeText(this, "Ошибка: " + message, Toast.LENGTH_SHORT).show()
-        );
+    private void vibrate(long ms) {
+        if (vibrator != null && vibrator.hasVibrator()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                //noinspection deprecation
+                vibrator.vibrate(ms);
+            }
+        }
     }
 
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-
         if (id == R.id.nav_logout) {
-            mAuth.signOut();
+            FirebaseAuth.getInstance().signOut();
             startActivity(new Intent(this, MainActivity.class));
             finish();
-        } else if (id == R.id.nav_car_control) {
-            // Уже в этой активности
         } else if (id == R.id.nav_logs) {
             startActivity(new Intent(this, LogsActivity.class));
         } else if (id == R.id.nav_profile) {
             startActivity(new Intent(this, HomeActivity.class));
+        } else if (id == R.id.nav_car_control) {
+            // Уже здесь))
         }
-
+        else if (id == R.id.nav_service_centers) {
+            startActivity(new Intent(this, ServiceCentersActivity.class));
+        }
         drawerHelper.handleBackPressed();
         return true;
     }
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
-        drawerHelper.handleBackPressed();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        if (mAuth.getCurrentUser() == null) {
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
+        if (drawerHelper.isDrawerOpen()) {
+            drawerHelper.closeDrawer();
+        } else {
+            super.onBackPressed();
         }
     }
 }
