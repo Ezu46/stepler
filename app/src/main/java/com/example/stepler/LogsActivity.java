@@ -38,6 +38,9 @@ public class LogsActivity extends AppCompatActivity
     private NavigationDrawerHelper drawerHelper;
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
+    private TextView tvStateEngine;
+    private TextView tvStateWindows;
+    private TextView tvStateLocks;
     private RecyclerView logsRecyclerView;
     private LogAdapter logAdapter;
 
@@ -46,6 +49,27 @@ public class LogsActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_logs);
+
+        // Bind state TextViews (make sure activity_logs.xml has these IDs)
+        tvStateEngine  = findViewById(R.id.tvStateEngine);
+        tvStateWindows = findViewById(R.id.tvStateWindows);
+        tvStateLocks   = findViewById(R.id.tvStateLocks);
+
+        // Listen for current state changes
+        DatabaseReference stateRef = FirebaseDatabase.getInstance().getReference("state");
+        stateRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String eng = snapshot.child("engine").getValue(String.class);
+                String win = snapshot.child("windows").getValue(String.class);
+                String loc = snapshot.child("locks").getValue(String.class);
+                tvStateEngine.setText("Двигатель: " + (eng != null ? eng : ""));
+                tvStateWindows.setText("Окна: "      + (win != null ? win : ""));
+                tvStateLocks.setText("Замки: "      + (loc != null ? loc : ""));
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) { }
+        });
 
         // Инициализация компонентов
         mAuth = FirebaseAuth.getInstance();
@@ -84,10 +108,11 @@ public class LogsActivity extends AppCompatActivity
     }
 
     private void loadLogs() {
-        // Directly reference the Arduino logs at root (action branch)
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         DatabaseReference logsRef = FirebaseDatabase
             .getInstance()
-            .getReference("Arduino/action");
+            .getReference("logs")
+            .child(uid);
         logsRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {

@@ -32,6 +32,7 @@ public class CarControlActivity extends AppCompatActivity
         implements NavigationDrawerHelper.NavigationListener {
 
     private DatabaseReference arduinoRef;
+    private DatabaseReference stateRef;
 
     private ImageView   imgCar;
     private ImageButton btnEngine;
@@ -46,6 +47,28 @@ public class CarControlActivity extends AppCompatActivity
 
     private boolean isWindowsOpen = false;
     private boolean isDoorsLocked = true;
+
+    public class LogEntry {
+        public String message;
+        public long timestamp;
+        public String userId;
+        public String engine;
+        public String windows;
+        public String locks;
+
+        public LogEntry() { }
+
+        public LogEntry(String message, long timestamp, String userId,
+                        String engine, String windows, String locks) {
+            this.message  = message;
+            this.timestamp= timestamp;
+            this.userId   = userId;
+            this.engine   = engine;
+            this.windows  = windows;
+            this.locks    = locks;
+        }
+        // геттер для форматирования времени…
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,7 +92,6 @@ public class CarControlActivity extends AppCompatActivity
         btnLock        = findViewById(R.id.btn_lock);
         tvEngineStatus = findViewById(R.id.engine_status);
         tvLocation     = findViewById(R.id.tv_location);
-        tvEngineStatus = findViewById(R.id.engine_status);
 
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
@@ -79,6 +101,32 @@ public class CarControlActivity extends AppCompatActivity
 
         checkAuthentication();
         setupDatabaseListener();
+
+        // Listen for saved state changes
+        stateRef = FirebaseDatabase.getInstance().getReference("state");
+        stateRef.addValueEventListener(new com.google.firebase.database.ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                // Engine state
+                String engine = snapshot.child("engine").getValue(String.class);
+                if (engine != null) {
+                    tvEngineStatus.setText("Двигатель: " + engine);
+                }
+                // Windows state
+                String win = snapshot.child("windows").getValue(String.class);
+                isWindowsOpen = "OPEN".equals(win);
+                updateWindowButton();
+                // Locks state
+                String lock = snapshot.child("locks").getValue(String.class);
+                isDoorsLocked = "LOCKED".equals(lock);
+                updateLockButton();
+            }
+            @Override
+            public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {
+                Log.e("CarControlActivity", "State listener error: " + error.getMessage());
+            }
+        });
+
         setupButtonClickListeners();
         fetchPublicIpAndShow();
         // === Load user profile ===
@@ -157,29 +205,28 @@ public class CarControlActivity extends AppCompatActivity
             vibrate(50);
             boolean engineOff = tvEngineStatus.getText().toString().endsWith("OFF");
             String cmd = engineOff ? "engine_start" : "engine_stop";
-            // оптимистично меняем UI
-            tvEngineStatus.setText("Двигатель: " + (engineOff ? "ON" : "OFF"));
             sendCommand(cmd);
+            logAction(cmd);
         });
 
         // Фары (мигалка)
         btnLights.setOnClickListener(v -> {
             vibrate(20);
-            sendCommand("lights_flash");
+            logAction("lights_flash");
         });
 
         // Блокировка/Разблокировка дверей
         btnLock.setOnClickListener(v -> {
             vibrate(50);
             isDoorsLocked = !isDoorsLocked;
-            sendCommand(isDoorsLocked ? "lock_doors" : "unlock_doors");
+            logAction(isDoorsLocked ? "lock_doors" : "unlock_doors");
             updateLockButton();
         });
     }
 
     private void toggleWindows() {
         isWindowsOpen = !isWindowsOpen;
-        sendCommand(isWindowsOpen ? "windows_open" : "windows_close");
+        logAction(isWindowsOpen ? "windows_open" : "windows_close");
         updateWindowButton();
     }
 
@@ -247,6 +294,8 @@ public class CarControlActivity extends AppCompatActivity
         }
     }
 
+
+
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
@@ -266,6 +315,37 @@ public class CarControlActivity extends AppCompatActivity
         }
         drawerHelper.handleBackPressed();
         return true;
+    }
+
+    private void logAction(String action) {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
+
+        // Читаем текущее состояние UI
+        String engine  = tvEngineStatus.getText().toString().endsWith("ON")  ? "ON" : "OFF";
+        String windows = isWindowsOpen ? "OPEN" : "CLOSED";
+        String locks   = isDoorsLocked ? "LOCKED" : "UNLOCKED";
+
+        long timestamp = System.currentTimeMillis();
+        String uid     = user.getUid();
+
+        // Подготавливаем объект лога
+        LogEntry entry = new LogEntry(action, timestamp, uid, engine, windows, locks);
+
+        // Пишем в /logs/<uid>/
+        DatabaseReference logsRef = FirebaseDatabase
+                .getInstance()
+                .getReference("logs")
+                .child(uid);
+        logsRef.push().setValue(entry);
+
+        // Обновляем актуальное состояние в /state/
+        DatabaseReference stateRef = FirebaseDatabase
+                .getInstance()
+                .getReference("state");
+        stateRef.child("engine").setValue(engine);
+        stateRef.child("windows").setValue(windows);
+        stateRef.child("locks").setValue(locks);
     }
 
     @Override
