@@ -322,7 +322,14 @@ public class CarControlActivity extends AppCompatActivity
         if (user == null) return;
 
         // Читаем текущее состояние UI
-        String engine  = tvEngineStatus.getText().toString().endsWith("ON")  ? "ON" : "OFF";
+        String engine;
+        if ("engine_start".equals(action)) {
+            engine = "ON";
+        } else if ("engine_stop".equals(action)) {
+            engine = "OFF";
+        } else {
+            engine = tvEngineStatus.getText().toString().endsWith("ON") ? "ON" : "OFF";
+        }
         String windows = isWindowsOpen ? "OPEN" : "CLOSED";
         String locks   = isDoorsLocked ? "LOCKED" : "UNLOCKED";
 

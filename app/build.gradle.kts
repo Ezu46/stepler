@@ -49,9 +49,10 @@ dependencies {
     implementation ("com.google.firebase:firebase-functions:20.4.0")
     implementation ("androidx.activity:activity:1.10.0")
     implementation ("com.google.android.gms:play-services-maps:18.1.0")
-    implementation("com.yandex.android:mapkit:3.5.0")
+    implementation("com.yandex.android:maps.mobile:4.4.0-full")
     implementation(libs.firebase.auth)
-    implementation(libs.firebase.database)  // Совместимая версия для SDK 34
+    implementation(libs.firebase.database)
+    implementation(libs.animation.core.android)  // Совместимая версия для SDK 34
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
