@@ -12,6 +12,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import java.util.Calendar;
+import java.util.Objects;
 
 
 public class HomeActivity extends AppCompatActivity
@@ -41,6 +42,8 @@ public class HomeActivity extends AppCompatActivity
                 R.id.nav_view
         );
         drawerHelper.setNavigationListener(this);
+
+        Objects.requireNonNull(getSupportActionBar()).setTitle("Профиль");
 
         // Проверка авторизации
         if (mAuth.getCurrentUser() == null) {
@@ -111,6 +114,9 @@ public class HomeActivity extends AppCompatActivity
         }
         else if (id == R.id.nav_service_centers) {
             startActivity(new Intent(this, ServiceCentersActivity.class));
+        }
+        else if (id == R.id.nav_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
         }
 
         drawerHelper.handleBackPressed();

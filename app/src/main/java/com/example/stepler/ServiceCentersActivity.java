@@ -25,6 +25,8 @@ import com.yandex.runtime.ui_view.ViewProvider;
 
 import com.example.stepler.UserProfileLoader;
 
+import java.util.Objects;
+
 public class ServiceCentersActivity extends AppCompatActivity
         implements NavigationDrawerHelper.NavigationListener {
 
@@ -50,6 +52,8 @@ public class ServiceCentersActivity extends AppCompatActivity
                 R.id.nav_view
         );
         drawerHelper.setNavigationListener(this);
+
+        Objects.requireNonNull(getSupportActionBar()).setTitle("Сервисные центры");
 
         // Загрузка профиля пользователя
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
@@ -143,7 +147,6 @@ public class ServiceCentersActivity extends AppCompatActivity
         mapObjects.addPlacemark(textPoint, new ViewProvider(tv));
     }
 
-    // Остальные методы без изменений
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
@@ -159,6 +162,9 @@ public class ServiceCentersActivity extends AppCompatActivity
             FirebaseAuth.getInstance().signOut();
             startActivity(new Intent(this, MainActivity.class));
             finish();
+        }
+        else if (id == R.id.nav_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
         }
         drawerHelper.handleBackPressed();
         return true;

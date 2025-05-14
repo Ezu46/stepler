@@ -14,9 +14,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Stepler"
         tools:targetApi="31">
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false" />
+
         <meta-data
             android:name="com.yandex.mapkit.ApiKey"
-            android:value="2ffcc49f-6fdd-4a73-9230-6c21e8b00463"/>
+            android:value="2ffcc49f-6fdd-4a73-9230-6c21e8b00463" />
+
         <activity
             android:name=".ServiceCentersActivity"
             android:exported="false" />

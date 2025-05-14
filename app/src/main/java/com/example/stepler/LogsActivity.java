@@ -30,6 +30,7 @@ import java.util.Locale;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Objects;
 
 public class LogsActivity extends AppCompatActivity
         implements NavigationDrawerHelper.NavigationListener,
@@ -92,6 +93,8 @@ public class LogsActivity extends AppCompatActivity
                 R.id.nav_view
         );
         drawerHelper.setNavigationListener(this);
+
+        Objects.requireNonNull(getSupportActionBar()).setTitle("История действий");
 
         // Загрузка данных пользователя
         UserProfileLoader.loadUserProfile(
@@ -227,6 +230,9 @@ public class LogsActivity extends AppCompatActivity
         }
         else if (id == R.id.nav_service_centers) {
             startActivity(new Intent(this, ServiceCentersActivity.class));
+        }
+        else if (id == R.id.nav_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
         }
 
         drawerHelper.handleBackPressed();

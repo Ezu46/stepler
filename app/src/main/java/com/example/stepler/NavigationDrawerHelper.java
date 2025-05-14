@@ -40,17 +40,14 @@ public class NavigationDrawerHelper implements NavigationView.OnNavigationItemSe
         navigationView = activity.findViewById(navViewId);
         navigationView.setNavigationItemSelectedListener(this);
 
-        // 3) Если header не задан в XML через app:headerLayout, инфлейтим его вручную:
         if (navigationView.getHeaderCount() == 0) {
             navigationView.inflateHeaderView(R.layout.nav_header);
         }
 
-        // 4) Берём view из header и находим TextView
         View headerView = navigationView.getHeaderView(0);
         tvHeaderName  = headerView.findViewById(R.id.tvHeaderName);
         tvHeaderEmail = headerView.findViewById(R.id.tvHeaderEmail);
 
-        // 5) Настраиваем "гамбургер"
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 activity,
                 drawer,

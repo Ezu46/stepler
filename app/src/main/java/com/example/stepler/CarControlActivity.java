@@ -27,6 +27,8 @@ import com.example.stepler.UserProfileLoader;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.net.HttpURLConnection;
+import java.util.Objects;
 
 public class CarControlActivity extends AppCompatActivity
         implements NavigationDrawerHelper.NavigationListener {
@@ -47,6 +49,8 @@ public class CarControlActivity extends AppCompatActivity
 
     private boolean isWindowsOpen = false;
     private boolean isDoorsLocked = true;
+
+    private static final String ARDUINO_BASE_URL = "http://192.168.0.100"; // сюда потом закинем айпишник еспишки
 
     public class LogEntry {
         public String message;
@@ -83,6 +87,8 @@ public class CarControlActivity extends AppCompatActivity
                 R.id.nav_view
         );
         drawerHelper.setNavigationListener(this);
+
+        Objects.requireNonNull(getSupportActionBar()).setTitle("Управление авто");
 
         // === View binding ===
         imgCar         = findViewById(R.id.img_car);
@@ -170,6 +176,21 @@ public class CarControlActivity extends AppCompatActivity
         }).start();
     }
 
+    private void sendHttpCommand(String cmd) {
+        new Thread(() -> {
+            try {
+                URL url = new URL(ARDUINO_BASE_URL + "/action?cmd=" + cmd);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                int responseCode = conn.getResponseCode();
+                Log.d("CarControlActivity", "Sent HTTP " + cmd + ", response: " + responseCode);
+                conn.disconnect();
+            } catch (Exception e) {
+                Log.e("CarControlActivity", "HTTP command error: " + e.getMessage());
+            }
+        }).start();
+    }
+
     private void checkAuthentication() {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
             startActivity(new Intent(this, MainActivity.class));
@@ -207,12 +228,14 @@ public class CarControlActivity extends AppCompatActivity
             String cmd = engineOff ? "engine_start" : "engine_stop";
             sendCommand(cmd);
             logAction(cmd);
+            sendHttpCommand(cmd);
         });
 
         // Фары (мигалка)
         btnLights.setOnClickListener(v -> {
             vibrate(20);
             logAction("lights_flash");
+            sendHttpCommand("lights_flash");
         });
 
         // Блокировка/Разблокировка дверей
@@ -221,6 +244,7 @@ public class CarControlActivity extends AppCompatActivity
             isDoorsLocked = !isDoorsLocked;
             logAction(isDoorsLocked ? "lock_doors" : "unlock_doors");
             updateLockButton();
+            sendHttpCommand(isDoorsLocked ? "lock_doors" : "unlock_doors");
         });
     }
 
@@ -228,6 +252,7 @@ public class CarControlActivity extends AppCompatActivity
         isWindowsOpen = !isWindowsOpen;
         logAction(isWindowsOpen ? "windows_open" : "windows_close");
         updateWindowButton();
+        sendHttpCommand(isWindowsOpen ? "windows_open" : "windows_close");
     }
 
     private void sendCommand(String command) {
@@ -312,6 +337,9 @@ public class CarControlActivity extends AppCompatActivity
         }
         else if (id == R.id.nav_service_centers) {
             startActivity(new Intent(this, ServiceCentersActivity.class));
+        }
+        else if (id == R.id.nav_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
         }
         drawerHelper.handleBackPressed();
         return true;
