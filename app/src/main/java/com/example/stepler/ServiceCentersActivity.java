@@ -1,7 +1,10 @@
 package com.example.stepler;
 
+import static com.example.stepler.BuildConfig.YANDEX_API_KEY;
+
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Build;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
@@ -11,7 +14,6 @@ import android.widget.TextView;
 import android.graphics.Color;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
@@ -30,7 +32,6 @@ import java.util.Objects;
 public class ServiceCentersActivity extends AppCompatActivity
         implements NavigationDrawerHelper.NavigationListener {
 
-    private static final String MAPKIT_API_KEY = "2ffcc49f-6fdd-4a73-9230-6c21e8b00463";
     private static final Point KURSK_CENTER = new Point(51.7373, 36.1854); // Центр Курска
 
     private Spinner spinnerBrands;
@@ -40,7 +41,7 @@ public class ServiceCentersActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        MapKitFactory.setApiKey(MAPKIT_API_KEY);
+        MapKitFactory.setApiKey(YANDEX_API_KEY);
         MapKitFactory.initialize(this);
         setContentView(R.layout.activity_service_centers);
 

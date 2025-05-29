@@ -99,7 +99,25 @@
                     android:scaleType="centerInside"
                     android:layout_margin="8dp"/>
             </LinearLayout>
-            <!-- Геопозиция машины -->
+            <!-- Кнопка открытия багажника -->
+            <ImageButton
+                android:id="@+id/btn_trunk"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@drawable/ic_trunk_open"
+                android:background="@drawable/btn_square_selector"
+                android:scaleType="centerInside"
+                android:layout_marginTop="16dp"
+                android:layout_gravity="center_horizontal"/>
+
+            <Button
+                android:id="@+id/btnRegisterFingerprint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Зарегистрировать отпечаток"
+                android:layout_marginTop="8dp"
+                android:layout_gravity="center_horizontal" />
+
             <LinearLayout
                 android:id="@+id/location_container"
                 android:layout_width="wrap_content"

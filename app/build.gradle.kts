@@ -1,3 +1,4 @@
+import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     id("com.google.gms.google-services")
@@ -8,6 +9,10 @@ android {
     namespace = "com.example.stepler"
     compileSdk = 35
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.example.stepler"
         minSdk = 24
@@ -16,7 +21,19 @@ android {
         versionName = "1.0"
         vectorDrawables.useSupportLibrary = true
 
+        val localProps = Properties()
+        val localFile = rootProject.file("local.properties")
+        if (localFile.exists()) {
+            localProps.load(localFile.inputStream())}
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val yandexApiKey = localProps.getProperty("YANDEX_API_KEY", "")
+        val geocoderKey  = localProps.getProperty("YANDEX_GEOCODER_API_KEY", "")
+
+        // 3) Передаём их в BuildConfig
+        buildConfigField("String", "YANDEX_API_KEY", "\"$yandexApiKey\"")
+        buildConfigField("String", "YANDEX_GEOCODER_API_KEY", "\"$geocoderKey\"")
     }
 
     buildTypes {

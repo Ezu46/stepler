@@ -8,9 +8,13 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+import com.example.stepler.BuildConfig;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,6 +27,9 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.example.stepler.LogsActivity;
 import com.example.stepler.HomeActivity;
 import com.example.stepler.UserProfileLoader;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -64,20 +71,34 @@ public class CarControlActivity extends AppCompatActivity
 
         public LogEntry(String message, long timestamp, String userId,
                         String engine, String windows, String locks) {
-            this.message  = message;
-            this.timestamp= timestamp;
-            this.userId   = userId;
-            this.engine   = engine;
-            this.windows  = windows;
-            this.locks    = locks;
+            this.message = message;
+            this.timestamp = timestamp;
+            this.userId = userId;
+            this.engine = engine;
+            this.windows = windows;
+            this.locks = locks;
         }
-        // геттер для форматирования времени…
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_car_control);
+
+        Button btnRegisterFingerprint = findViewById(R.id.btnRegisterFingerprint);
+        btnRegisterFingerprint.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DatabaseReference dbRef = FirebaseDatabase.getInstance().getReference("app");
+                dbRef.child("action").setValue("register").addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(CarControlActivity.this, "Команда регистрации отправлена", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(CarControlActivity.this, "Ошибка отправки команды", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
 
         // === Navigation Drawer & Toolbar ===
         drawerHelper = new NavigationDrawerHelper(
@@ -162,14 +183,53 @@ public class CarControlActivity extends AppCompatActivity
     private void fetchPublicIpAndShow() {
         new Thread(() -> {
             try {
+                // Получение публичного IP
                 URL url = new URL("https://api.ipify.org");
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(url.openStream()));
-                final String ip = in.readLine();
+                BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+                String ip = in.readLine();
                 in.close();
-                runOnUiThread(() ->
-                        tvLocation.setText("Геопозиция машины: " + ip)
-                );
+
+                // Определение города по IP через сервис ip-api.com
+                URL geoUrl = new URL("http://ip-api.com/json/" + ip);
+                HttpURLConnection geoConn = (HttpURLConnection) geoUrl.openConnection();
+                geoConn.setRequestMethod("GET");
+                BufferedReader geoBr = new BufferedReader(new InputStreamReader(geoConn.getInputStream()));
+                StringBuilder geoJson = new StringBuilder();
+                String line;
+                while ((line = geoBr.readLine()) != null) geoJson.append(line);
+                geoBr.close();
+                JSONObject geoObj = new JSONObject(geoJson.toString());
+                String city = geoObj.optString("city", "неизвестно");
+                double lat = geoObj.optDouble("lat", 0);
+                double lon = geoObj.optDouble("lon", 0);
+
+                // Обратное геокодирование через Yandex Geocoder
+                String geocodeUrl = "https://geocode-maps.yandex.ru/v1/"
+                        + "?apikey=" + BuildConfig.YANDEX_GEOCODER_API_KEY
+                        + "&geocode=" + lon + "," + lat
+                        + "&format=json";
+                HttpURLConnection yConn = (HttpURLConnection) new URL(geocodeUrl).openConnection();
+                yConn.setRequestMethod("GET");
+                BufferedReader yBr = new BufferedReader(new InputStreamReader(yConn.getInputStream()));
+                StringBuilder yJson = new StringBuilder();
+                while ((line = yBr.readLine()) != null) yJson.append(line);
+                yBr.close();
+                JSONObject yObj = new JSONObject(yJson.toString());
+                JSONArray features = yObj
+                        .getJSONObject("response")
+                        .getJSONObject("GeoObjectCollection")
+                        .getJSONArray("featureMember");
+                String address = "неизвестно";
+                if (features.length() > 0) {
+                    address = features.getJSONObject(0)
+                            .getJSONObject("GeoObject")
+                            .getJSONObject("metaDataProperty")
+                            .getJSONObject("GeocoderMetaData")
+                            .getString("text");
+                }
+
+                final String display = "Город: " + city + "\nАдрес: " + address;
+                runOnUiThread(() -> tvLocation.setText(display));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -214,7 +274,17 @@ public class CarControlActivity extends AppCompatActivity
         });
     }
 
+
+
     private void setupButtonClickListeners() {
+
+        ImageButton btnTrunk = findViewById(R.id.btn_trunk);
+        btnTrunk.setOnClickListener(v -> {
+            vibrate(50);
+            sendCommand("trunk_open");
+            logAction("trunk_open");
+        });
+
         // Окна
         btnWindows.setOnClickListener(v -> {
             vibrate(50);
