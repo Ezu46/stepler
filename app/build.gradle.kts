@@ -30,7 +30,7 @@ android {
 
         val yandexApiKey = localProps.getProperty("YANDEX_API_KEY", "")
         val geocoderKey  = localProps.getProperty("YANDEX_GEOCODER_API_KEY", "")
-
+        manifestPlaceholders["YandexMapKey"] = localProps.getProperty("YANDEX_API_KEY", "")
         // 3) Передаём их в BuildConfig
         buildConfigField("String", "YANDEX_API_KEY", "\"$yandexApiKey\"")
         buildConfigField("String", "YANDEX_GEOCODER_API_KEY", "\"$geocoderKey\"")
