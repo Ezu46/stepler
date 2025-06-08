@@ -1,7 +1,5 @@
 package com.example.stepler;
 
-import static com.example.stepler.BuildConfig.YANDEX_API_KEY;
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Build;
@@ -41,7 +39,7 @@ public class ServiceCentersActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        MapKitFactory.setApiKey(YANDEX_API_KEY);
+        MapKitFactory.setApiKey(BuildConfig.YANDEX_API_KEY);
         MapKitFactory.initialize(this);
         setContentView(R.layout.activity_service_centers);
 

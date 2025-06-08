@@ -306,15 +306,18 @@ public class CarControlActivity extends AppCompatActivity
             vibrate(20);
             logAction("lights_flash");
             sendHttpCommand("lights_flash");
+            sendCommand("lights_flash");
         });
 
         // Блокировка/Разблокировка дверей
         btnLock.setOnClickListener(v -> {
             vibrate(50);
             isDoorsLocked = !isDoorsLocked;
-            logAction(isDoorsLocked ? "lock_doors" : "unlock_doors");
+            String cmd = isDoorsLocked ? "lock_doors" : "unlock_doors";
+            logAction(cmd);
             updateLockButton();
-            sendHttpCommand(isDoorsLocked ? "lock_doors" : "unlock_doors");
+            sendCommand(cmd);
+            sendHttpCommand(cmd);
         });
     }
 
@@ -330,6 +333,13 @@ public class CarControlActivity extends AppCompatActivity
                 .setValue(command)
                 .addOnFailureListener(e ->
                         Log.e("Firebase", "Send error: " + e.getMessage())
+                );
+        // и сразу закинет в апп актион
+        DatabaseReference appRef = FirebaseDatabase.getInstance().getReference("app");
+        appRef.child("action")
+                .setValue(command)
+                .addOnFailureListener(e ->
+                        Log.e("CarControlActivity", "Failed to send app action: " + e.getMessage())
                 );
     }
 
