@@ -1,5 +1,11 @@
 package com.example.stepler;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import android.util.Log;
+
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -15,6 +21,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.example.stepler.BuildConfig;
+import android.content.pm.PackageManager;
+import androidx.core.content.ContextCompat;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -58,6 +66,9 @@ public class CarControlActivity extends AppCompatActivity
     private boolean isDoorsLocked = true;
 
     private static final String ARDUINO_BASE_URL = "http://192.168.0.100"; // сюда потом закинем айпишник еспишки
+    private static final String CHANNEL_ID = "security_alerts";
+    private static final String CHANNEL_NAME = "Security Alerts";
+    private static final int WARNING_NOTIFICATION_ID = 1001;
 
     public class LogEntry {
         public String message;
@@ -84,6 +95,16 @@ public class CarControlActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_car_control);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            channel.setDescription("Уведомления о несанкционированном доступе");
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            if (nm != null) nm.createNotificationChannel(channel);
+        }
 
         Button btnRegisterFingerprint = findViewById(R.id.btnRegisterFingerprint);
         btnRegisterFingerprint.setOnClickListener(new View.OnClickListener() {
@@ -272,6 +293,23 @@ public class CarControlActivity extends AppCompatActivity
                 Log.e("Firebase", "Error: " + error.getMessage());
             }
         });
+
+        // Слушаем тревоги по /app/alarms/latest
+        DatabaseReference alarmsRef = FirebaseDatabase.getInstance().getReference("app/alarms/latest");
+        alarmsRef.addValueEventListener(new com.google.firebase.database.ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                // Здесь реагируем на тревогу
+                if (snapshot.exists()) {
+                    // Было: showUnauthorizedAlert();
+                    sendSecurityNotification();
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {
+                Log.e("CarControlActivity", "Alarms listener error: " + error.getMessage());
+            }
+        });
     }
 
 
@@ -389,13 +427,27 @@ public class CarControlActivity extends AppCompatActivity
     }
 
     private void vibrate(long ms) {
-        if (vibrator != null && vibrator.hasVibrator()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE));
+        if (vibrator == null || !vibrator.hasVibrator()) {
+            return;
+        }
+
+        try {
+            // Проверяем наличие разрешения
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.VIBRATE)
+                    == PackageManager.PERMISSION_GRANTED) {
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE));
+                } else {
+                    //noinspection deprecation
+                    vibrator.vibrate(ms);
+                }
             } else {
-                //noinspection deprecation
-                vibrator.vibrate(ms);
+                // Логируем отсутствие разрешения (необязательно)
+                Log.w("Vibration", "VIBRATE permission not granted");
             }
+        } catch (SecurityException e) {
+            Log.e("Vibration", "Vibration failed: " + e.getMessage());
         }
     }
 
@@ -470,5 +522,15 @@ public class CarControlActivity extends AppCompatActivity
         } else {
             super.onBackPressed();
         }
+    }
+    private void sendSecurityNotification() {
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_warning)
+            .setContentTitle("Тревога!")
+            .setContentText("Несанкционированный доступ к автомобилю!")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true);
+        NotificationManagerCompat.from(this)
+            .notify(WARNING_NOTIFICATION_ID, builder.build());
     }
 }
