@@ -12,6 +12,7 @@ materialVersion = "1.11.0"
 firebaseAuth = "23.2.0"
 firebaseDatabase = "21.0.0"
 animationCoreAndroid = "1.8.1"
+firebaseMessaging = "24.1.1"
 
 [libraries]
 constraintlayout-v214 = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayoutVersion" }
@@ -26,6 +27,7 @@ material-v1110 = { module = "com.google.android.material:material", version.ref 
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth", version.ref = "firebaseAuth" }
 firebase-database = { group = "com.google.firebase", name = "firebase-database", version.ref = "firebaseDatabase" }
 animation-core-android = { group = "androidx.compose.animation", name = "animation-core-android", version.ref = "animationCoreAndroid" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebaseMessaging" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -4,7 +4,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import android.util.Log;
 
 import android.content.Context;
 import android.content.Intent;
@@ -12,7 +11,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
@@ -22,19 +20,22 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.example.stepler.BuildConfig;
 import android.content.pm.PackageManager;
-import androidx.core.content.ContextCompat;
+
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import com.example.stepler.LogsActivity;
 import com.example.stepler.HomeActivity;
 import com.example.stepler.UserProfileLoader;
+import com.google.firebase.database.ValueEventListener;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -44,6 +45,15 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.HttpURLConnection;
 import java.util.Objects;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import android.Manifest;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import android.util.Log;
 
 public class CarControlActivity extends AppCompatActivity
         implements NavigationDrawerHelper.NavigationListener {
@@ -69,6 +79,12 @@ public class CarControlActivity extends AppCompatActivity
     private static final String CHANNEL_ID = "security_alerts";
     private static final String CHANNEL_NAME = "Security Alerts";
     private static final int WARNING_NOTIFICATION_ID = 1001;
+    private static final int REQ_POST_NOTIFICATIONS = 2002;
+
+    // For unauthorized-access alert window logic
+    private final List<Long> unauthorizedTimestamps = new ArrayList<>();
+    private boolean alertSent = false;
+    private long lastAlarmTimestamp = -1;
 
     public class LogEntry {
         public String message;
@@ -97,13 +113,23 @@ public class CarControlActivity extends AppCompatActivity
         setContentView(R.layout.activity_car_control);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
+                    CHANNEL_ID,
+                    CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_HIGH
             );
             channel.setDescription("Уведомления о несанкционированном доступе");
             NotificationManager nm = getSystemService(NotificationManager.class);
             if (nm != null) nm.createNotificationChannel(channel);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{ Manifest.permission.POST_NOTIFICATIONS },
+                        REQ_POST_NOTIFICATIONS
+                );
+            }
         }
 
         Button btnRegisterFingerprint = findViewById(R.id.btnRegisterFingerprint);
@@ -288,31 +314,64 @@ public class CarControlActivity extends AppCompatActivity
                     if (action != null) updateUI(action);
                 }
             }
+
             @Override
             public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {
                 Log.e("Firebase", "Error: " + error.getMessage());
             }
         });
 
-        // Слушаем тревоги по /app/alarms/latest
-        DatabaseReference alarmsRef = FirebaseDatabase.getInstance().getReference("app/alarms/latest");
-        alarmsRef.addValueEventListener(new com.google.firebase.database.ValueEventListener() {
+        // Слушаем тревоги по /alarms
+        DatabaseReference alarmsRef = FirebaseDatabase.getInstance().getReference("alarms");
+        alarmsRef.addValueEventListener(new ValueEventListener() {
             @Override
-            public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
-                // Здесь реагируем на тревогу
-                if (snapshot.exists()) {
-                    // Было: showUnauthorizedAlert();
-                    sendSecurityNotification();
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+
+                // 1) смотрим, что реально лежит в узле
+                Log.d("CarControlActivity", "Alarms snapshot = " + snapshot.getValue());
+
+                String latest = snapshot.child("latest").getValue(String.class);
+
+                DataSnapshot tsSnap = snapshot.child("timestamp");
+                long ts = -1;
+
+                // Читаем как Long (правильный тип server‑timestamp)
+                Long l = tsSnap.getValue(Long.class);
+                if (l != null) {
+                    ts = l;
+                } else {
+                    // fallback: в базе может остаться строка
+                    String s = tsSnap.getValue(String.class);
+                    if (s != null) {
+                        try {
+                            ts = Long.parseLong(s);
+                        } catch (NumberFormatException e) {
+                            Log.w("CarControlActivity", "timestamp parse error: " + s);
+                        }
+                    }
+                }
+
+                if (ts == -1) {
+                    Log.w("CarControlActivity", "timestamp is missing or invalid");
+                    return;
+                }
+
+                // 2) реагируем на каждое новое значение
+                if (ts != lastAlarmTimestamp) {
+                    lastAlarmTimestamp = ts;
+
+                    if ("unauthorized_access".equals(latest)) {
+                        sendSecurityNotification();
+                    }
                 }
             }
+
             @Override
-            public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {
+            public void onCancelled(@NonNull DatabaseError error) {
                 Log.e("CarControlActivity", "Alarms listener error: " + error.getMessage());
             }
         });
     }
-
-
 
     private void setupButtonClickListeners() {
 
@@ -524,13 +583,20 @@ public class CarControlActivity extends AppCompatActivity
         }
     }
     private void sendSecurityNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                Log.w("CarControlActivity", "Notification permission not granted");
+                return;
+            }
+        }
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_warning)
-            .setContentTitle("Тревога!")
-            .setContentText("Несанкционированный доступ к автомобилю!")
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true);
+                .setSmallIcon(R.drawable.ic_warning)
+                .setContentTitle("Тревога!")
+                .setContentText("Несанкционированный доступ к автомобилю!")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true);
         NotificationManagerCompat.from(this)
-            .notify(WARNING_NOTIFICATION_ID, builder.build());
+                .notify(WARNING_NOTIFICATION_ID, builder.build());
     }
 }

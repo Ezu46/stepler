@@ -69,7 +69,8 @@ dependencies {
     implementation("com.yandex.android:maps.mobile:4.4.0-full")
     implementation(libs.firebase.auth)
     implementation(libs.firebase.database)
-    implementation(libs.animation.core.android)  // Совместимая версия для SDK 34
+    implementation(libs.animation.core.android)
+    implementation(libs.firebase.messaging)  // Совместимая версия для SDK 34
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
